@@ -1,4 +1,3 @@
-
 """Load the Spotify Charts dataset and saved track metadata."""
 
 from pathlib import Path
@@ -10,9 +9,14 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = PROJECT_ROOT / "data"
 
 
-def load_chart_sample(nrows=30):
-    """Load a small sample of the Spotify Charts CSV."""
+def load_chart_data(nrows=1000):
+    """Load a sample of the Spotify Charts CSV."""
     csv_path = DATA_DIR / "charts.csv"
+
+    if not csv_path.exists():
+        raise FileNotFoundError(
+            f"Chart dataset not found: {csv_path}"
+        )
 
     return pd.read_csv(csv_path, nrows=nrows)
 
