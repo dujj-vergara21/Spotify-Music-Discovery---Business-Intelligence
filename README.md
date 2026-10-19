@@ -79,15 +79,20 @@ Spotify-Music-Discovery---Business-Intelligence/
 
 ## Data Access and Collaboration
 
-The full Spotify Charts dataset is large and is not stored directly in this GitHub repository.
+### Sample Datasets
 
-The shared dataset will be made available through Google Drive:
+Small sample datasets for testing are available in the [`data/`](data/) folder:
 
-**[Access the shared dataset][(https://drive.google.com/file/d/1khFo6BXLkgggcwEch1lvVxl_okNkAxxP/view?usp=sharing)]**
+- [`charts_cleaned_sample.csv`](data/charts_cleaned_sample.csv) — cleaned Spotify chart records.
+- [`spotify_track_metadata_sample.csv`](data/spotify_track_metadata_sample.csv) — sample Spotify track metadata.
 
-Replace the placeholder above with the actual shared Google Drive link.
+### Full Dataset
 
-Generated CSV files and other large data files may be excluded from Git version control. Team members should follow the shared data-access instructions and use the same dataset version when running the project.
+The complete Spotify Charts dataset is stored in Google Drive because of its large file size.
+
+[Access the full dataset](https://drive.google.com/file/d/1khFo6BXLkgggcwEch1lvVxl_okNkAxxP/view?usp=drive_link)
+
+Replace the placeholder with the shared Google Drive link. Team members should use the same dataset version for consistent results.
 
 ## Data Preparation Workflow
 
