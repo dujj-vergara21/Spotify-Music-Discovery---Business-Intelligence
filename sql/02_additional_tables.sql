@@ -1,7 +1,7 @@
 -- =========================================================
 -- MUSIC DISCOVERY & ARTIST VISIBILITY DASHBOARD
 -- File: sql/02_additional_tables.sql
--- Creates tables 11-20
+-- Creates tables 11-20 and adds date-dimension relationship
 -- =========================================================
 
 USE music_discovery;
@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS countries (
     country_name VARCHAR(100) NOT NULL
 );
 
--- 12. CALENDAR DATES
+-- 12. CALENDAR DATE DIMENSION
 CREATE TABLE IF NOT EXISTS dim_dates (
     date_id INT PRIMARY KEY,
     full_date DATE NOT NULL UNIQUE,
@@ -107,6 +107,32 @@ CREATE TABLE IF NOT EXISTS artist_discovery_metrics (
         FOREIGN KEY (artist_id) REFERENCES artists(artist_id),
     UNIQUE KEY uq_artist_metric_date (artist_id, metric_date)
 );
+
+-- Add date dimension key to the fact table if missing.
+-- Existing rows are retained; date_id is populated in a later step.
+ALTER TABLE daily_track_charts
+    ADD COLUMN IF NOT EXISTS date_id INT NULL;
+
+-- Add the foreign key only if it does not already exist.
+SET @date_fk_exists = (
+    SELECT COUNT(*)
+    FROM information_schema.KEY_COLUMN_USAGE
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'daily_track_charts'
+      AND CONSTRAINT_NAME = 'fk_daily_charts_dates'
+);
+
+SET @date_fk_sql = IF(
+    @date_fk_exists = 0,
+    'ALTER TABLE daily_track_charts
+       ADD CONSTRAINT fk_daily_charts_dates
+       FOREIGN KEY (date_id) REFERENCES dim_dates(date_id)',
+    'SELECT ''Date foreign key already exists'' AS status'
+);
+
+PREPARE date_fk_stmt FROM @date_fk_sql;
+EXECUTE date_fk_stmt;
+DEALLOCATE PREPARE date_fk_stmt;
 
 -- VERIFY TABLE COUNT
 SELECT COUNT(*) AS total_tables
