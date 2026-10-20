@@ -1,4 +1,4 @@
-"""Run the local Spotify data preparation workflow."""
+"""Run the Spotify data preparation workflow."""
 
 from src.data_loader import (
     DATA_DIR,
@@ -16,28 +16,24 @@ def main():
     print("MUSIC DISCOVERY & ARTIST VISIBILITY PROJECT")
     print("=" * 48)
 
-    # Load chart data and saved metadata
-    sample = load_chart_data(nrows=1000)
-    track_metadata = load_track_metadata()
+    charts = load_chart_data()
+    metadata = load_track_metadata()
 
     print("\nData sources loaded")
-    print("Spotify Charts rows:", len(sample))
-    print("Saved metadata records:", len(track_metadata))
+    print("Chart records:", len(charts))
+    print("Track metadata records:", len(metadata))
 
-    # Clean chart data
-    clean_df = clean_chart_data(sample)
+    clean_df = clean_chart_data(charts)
 
-    # Validate both datasets
     validate_chart_data(clean_df)
-    validate_track_metadata(track_metadata)
+    validate_track_metadata(metadata)
 
-    # Export cleaned chart sample
     output_path = DATA_DIR / "charts_cleaned_sample.csv"
     clean_df.to_csv(output_path, index=False)
 
-    print("\nCleaned chart sample saved to:", output_path)
-    print("Exported rows:", len(clean_df))
-    print("\nLocal workflow completed successfully.")
+    print("\nCleaned chart sample saved:", output_path)
+    print("Cleaned rows:", len(clean_df))
+    print("\nWorkflow completed successfully.")
 
 
 if __name__ == "__main__":
