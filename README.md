@@ -16,25 +16,43 @@ The project aims to help listeners discover music beyond mainstream hits while p
 - Develop analytical measures and interactive visualizations.
 - Generate evidence-based insights and recommendations for music discovery and artist visibility.
 
-
-## Data Sources
+## Data Sources and Data Dictionary
 
 ### Source 1: Spotify Charts — Kaggle CSV
-- **Purpose:** Historical chart performance analysis.
-- **Fields:** Track title, artist, rank, date, region, chart type, trend, and stream counts.
-- **Access:** Full CSV shared through the project Google Drive; sample CSV files are in `data/`.
-- **Use:** Main source for chart rankings and historical stream observations.
+
+**Purpose:** Historical chart performance analysis.
+
+| Field | Meaning |
+|---|---|
+| title | Track title in the source dataset |
+| artist | Artist name as recorded in the chart |
+| rank | Chart position |
+| date | Chart observation date |
+| region | Chart market or country |
+| chart | Chart type |
+| trend | Recorded chart movement |
+| stream(s) | Stream count, when available |
+
+**Full dataset:** Shared through the project Google Drive. Small sample files are available in `data/`.
 
 ### Source 2: MusicBrainz API
-- **Purpose:** Enrich chart records with music metadata.
-- **Fields:** MusicBrainz recording ID, recording title, artist name, release date, and available artist information.
-- **Access:** https://musicbrainz.org/doc/MusicBrainz_API
-- **Implementation:** `src/musicbrainz_api.py`
-- **Usage requirements:** Use a descriptive User-Agent and respect API rate limits.
-- **Matching:** Match chart records to metadata using reliable identifiers where available; otherwise treat name-based matches as tentative.
 
-### Excluded from the approved pipeline
-- Spotify Web API is not currently part of the approved data pipeline. Its use must be reviewed against applicable developer policies before adoption.
+**Purpose:** Supplementary artist and recording metadata.
+
+**Implementation:** `src/musicbrainz_api.py` and `src/fetch_musicbrainz_metadata.py`
+
+The metadata export retains the original chart artist name and candidate MusicBrainz artist details. Candidate matches are marked `REVIEW_REQUIRED` and must be checked before integration.
+
+**API documentation:** https://musicbrainz.org/doc/MusicBrainz_API
+
+### Data Integration Rules
+
+- Preserve the original chart fields.
+- Do not assume similarly named artists are the same artist.
+- Prefer verified identifiers when matching records.
+- Keep unmatched or ambiguous records flagged for review.
+- Document missing values and any transformations applied.
+- Respect the source dataset's license and the API's terms of use.
 
 ## Technology Stack
 
