@@ -72,6 +72,7 @@ CREATE TABLE IF NOT EXISTS daily_track_charts (
     trend_id INT,
     streams BIGINT,
     source_track_url VARCHAR(500),
+
     CONSTRAINT fk_daily_charts_tracks
         FOREIGN KEY (track_id) REFERENCES tracks(track_id),
     CONSTRAINT fk_daily_charts_regions
@@ -80,9 +81,14 @@ CREATE TABLE IF NOT EXISTS daily_track_charts (
         FOREIGN KEY (chart_type_id) REFERENCES chart_types(chart_type_id),
     CONSTRAINT fk_daily_charts_trends
         FOREIGN KEY (trend_id) REFERENCES chart_trends(trend_id),
+
     INDEX idx_chart_date (chart_date),
     INDEX idx_track_date (track_id, chart_date),
-    INDEX idx_region_date (region_id, chart_date)
+    INDEX idx_region_date (region_id, chart_date),
+
+    -- Prevent duplicate chart entries
+    UNIQUE KEY uq_daily_chart_entry
+        (track_id, chart_date, chart_rank, region_id, chart_type_id)
 );
 
 -- 8. DATA SOURCES
@@ -115,13 +121,14 @@ CREATE TABLE IF NOT EXISTS track_source_mapping (
     source_id INT NOT NULL,
     source_track_identifier VARCHAR(255),
     source_track_url VARCHAR(500),
+
     CONSTRAINT fk_track_mapping_tracks
         FOREIGN KEY (track_id) REFERENCES tracks(track_id),
     CONSTRAINT fk_track_mapping_sources
         FOREIGN KEY (source_id) REFERENCES data_sources(source_id),
-    UNIQUE KEY uq_source_track (
-        source_id, source_track_identifier
-    )
+
+    UNIQUE KEY uq_source_track
+        (source_id, source_track_identifier)
 );
 
 -- SEED REFERENCE DATA
@@ -138,6 +145,7 @@ VALUES
     ('NEW_ENTRY'),
     ('UNKNOWN');
 
+-- Register the Kaggle dataset only if it does not exist
 INSERT INTO data_sources
     (source_name, source_type, source_url, source_notes)
 SELECT
@@ -146,10 +154,12 @@ SELECT
     'https://www.kaggle.com/datasets/dhruvildave/spotify-charts',
     'Daily Spotify chart observations'
 WHERE NOT EXISTS (
-    SELECT 1 FROM data_sources
+    SELECT 1
+    FROM data_sources
     WHERE source_name = 'Spotify Charts Kaggle Dataset'
 );
 
+-- Register Spotify Web API only if it does not exist
 INSERT INTO data_sources
     (source_name, source_type, source_url, source_notes)
 SELECT
@@ -158,7 +168,8 @@ SELECT
     'https://developer.spotify.com/documentation/web-api',
     'Track metadata; subject to API availability and terms'
 WHERE NOT EXISTS (
-    SELECT 1 FROM data_sources
+    SELECT 1
+    FROM data_sources
     WHERE source_name = 'Spotify Web API'
 );
 
@@ -170,6 +181,7 @@ DESCRIBE albums;
 DESCRIBE tracks;
 DESCRIBE daily_track_charts;
 
+-- Show foreign-key relationships
 SELECT
     TABLE_NAME,
     COLUMN_NAME,
