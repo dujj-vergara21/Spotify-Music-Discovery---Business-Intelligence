@@ -157,3 +157,26 @@ Planned database work includes:
 **Current stage:** Prototype development and data integration testing.
 
 The project is progressing from initial data exploration toward reproducible data preparation, relational database implementation, and interactive Business Intelligence dashboard development.
+
+
+## Spotify API Setup
+
+The project uses the Spotify Web API to retrieve available track metadata.
+
+### Setup
+
+1. Create or access an eligible Spotify Developer app.
+2. Copy `.env.example` to a local file named `.env`.
+3. Replace the placeholder values with your own authorized app credentials.
+4. Keep `.env` private. Never commit API secrets to GitHub.
+5. Install dependencies using `pip install -r requirements.txt`.
+
+### Example
+
+Run the API client with:
+
+`python -m src.spotify_api`
+
+The API client searches for tracks and returns available track, artist, album, release-date, and Spotify URL fields.
+
+API access depends on Spotify's developer eligibility, permissions, and current policies.
