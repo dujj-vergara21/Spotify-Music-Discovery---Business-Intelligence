@@ -1,4 +1,3 @@
-
 """MySQL connection and database validation for Music Discovery."""
 
 import os
@@ -7,18 +6,18 @@ from mysql.connector import Error
 
 
 def get_connection():
-    """Connect to the existing music_discovery database."""
+    """Connect to the music_discovery database."""
     return mysql.connector.connect(
         host=os.getenv("MYSQL_HOST", "127.0.0.1"),
         port=int(os.getenv("MYSQL_PORT", "3310")),
-        user=os.getenv("MYSQL_USER", "root"),
+        user=os.getenv("MYSQL_USER", "music_app"),
         password=os.environ["MYSQL_PASSWORD"],
-        database="music_discovery",
+        database=os.getenv("MYSQL_DATABASE", "music_discovery"),
     )
 
 
 def validate_database():
-    """Check the existing tables and their row counts."""
+    """Check database tables and their row counts."""
     conn = None
     cursor = None
 
@@ -32,6 +31,7 @@ def validate_database():
         tables = [row[0] for row in cursor.fetchall()]
 
         print(f"\nTables found: {len(tables)}")
+
         for table in tables:
             cursor.execute(f"SELECT COUNT(*) FROM `{table}`")
             row_count = cursor.fetchone()[0]
