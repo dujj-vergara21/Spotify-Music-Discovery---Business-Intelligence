@@ -7,11 +7,7 @@
 CREATE DATABASE IF NOT EXISTS music_discovery;
 USE music_discovery;
 
--- =========================================================
 -- 1. ARTISTS
--- Stores artist information.
--- =========================================================
-
 CREATE TABLE IF NOT EXISTS artists (
     artist_id INT AUTO_INCREMENT PRIMARY KEY,
     artist_name VARCHAR(255) NOT NULL,
@@ -21,11 +17,7 @@ CREATE TABLE IF NOT EXISTS artists (
     UNIQUE KEY uq_artist_name (artist_name)
 );
 
--- =========================================================
 -- 2. ALBUMS
--- Each album belongs to an artist in this initial design.
--- =========================================================
-
 CREATE TABLE IF NOT EXISTS albums (
     album_id INT AUTO_INCREMENT PRIMARY KEY,
     album_name VARCHAR(255) NOT NULL,
@@ -33,15 +25,10 @@ CREATE TABLE IF NOT EXISTS albums (
     album_type VARCHAR(50),
     artist_id INT,
     CONSTRAINT fk_albums_artists
-        FOREIGN KEY (artist_id)
-        REFERENCES artists(artist_id)
+        FOREIGN KEY (artist_id) REFERENCES artists(artist_id)
 );
 
--- =========================================================
 -- 3. TRACKS
--- Stores track metadata obtained from Spotify.
--- =========================================================
-
 CREATE TABLE IF NOT EXISTS tracks (
     track_id VARCHAR(50) PRIMARY KEY,
     track_name VARCHAR(255) NOT NULL,
@@ -49,50 +36,32 @@ CREATE TABLE IF NOT EXISTS tracks (
     release_date DATE,
     artist_id INT,
     CONSTRAINT fk_tracks_albums
-        FOREIGN KEY (album_id)
-        REFERENCES albums(album_id),
+        FOREIGN KEY (album_id) REFERENCES albums(album_id),
     CONSTRAINT fk_tracks_artists
-        FOREIGN KEY (artist_id)
-        REFERENCES artists(artist_id)
+        FOREIGN KEY (artist_id) REFERENCES artists(artist_id)
 );
 
--- =========================================================
 -- 4. CHART REGIONS
--- Stores countries or regions represented in chart data.
--- =========================================================
-
 CREATE TABLE IF NOT EXISTS chart_regions (
     region_id INT AUTO_INCREMENT PRIMARY KEY,
     region_code VARCHAR(50) NOT NULL UNIQUE,
     region_name VARCHAR(150)
 );
 
--- =========================================================
 -- 5. CHART TYPES
--- Examples: top200, viral50.
--- =========================================================
-
 CREATE TABLE IF NOT EXISTS chart_types (
     chart_type_id INT AUTO_INCREMENT PRIMARY KEY,
     chart_name VARCHAR(50) NOT NULL UNIQUE,
     chart_description VARCHAR(255)
 );
 
--- =========================================================
 -- 6. CHART TRENDS
--- Examples: MOVE_UP, MOVE_DOWN, SAME_POSITION, NEW_ENTRY.
--- =========================================================
-
 CREATE TABLE IF NOT EXISTS chart_trends (
     trend_id INT AUTO_INCREMENT PRIMARY KEY,
     trend_name VARCHAR(50) NOT NULL UNIQUE
 );
 
--- =========================================================
--- 7. DAILY TRACK CHARTS
--- Fact table for track ranking and streams by date/region.
--- =========================================================
-
+-- 7. DAILY TRACK CHARTS (FACT TABLE)
 CREATE TABLE IF NOT EXISTS daily_track_charts (
     chart_record_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     track_id VARCHAR(50) NOT NULL,
@@ -116,11 +85,7 @@ CREATE TABLE IF NOT EXISTS daily_track_charts (
     INDEX idx_region_date (region_id, chart_date)
 );
 
--- =========================================================
 -- 8. DATA SOURCES
--- Documents where imported data originated.
--- =========================================================
-
 CREATE TABLE IF NOT EXISTS data_sources (
     source_id INT AUTO_INCREMENT PRIMARY KEY,
     source_name VARCHAR(150) NOT NULL,
@@ -130,11 +95,7 @@ CREATE TABLE IF NOT EXISTS data_sources (
     source_notes TEXT
 );
 
--- =========================================================
 -- 9. IMPORT BATCHES
--- Tracks individual data import runs.
--- =========================================================
-
 CREATE TABLE IF NOT EXISTS import_batches (
     batch_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     source_id INT,
@@ -147,11 +108,7 @@ CREATE TABLE IF NOT EXISTS import_batches (
         FOREIGN KEY (source_id) REFERENCES data_sources(source_id)
 );
 
--- =========================================================
 -- 10. TRACK SOURCE MAPPING
--- Links source identifiers and URLs to normalized tracks.
--- =========================================================
-
 CREATE TABLE IF NOT EXISTS track_source_mapping (
     mapping_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     track_id VARCHAR(50) NOT NULL,
@@ -163,16 +120,11 @@ CREATE TABLE IF NOT EXISTS track_source_mapping (
     CONSTRAINT fk_track_mapping_sources
         FOREIGN KEY (source_id) REFERENCES data_sources(source_id),
     UNIQUE KEY uq_source_track (
-        source_id,
-        source_track_identifier
+        source_id, source_track_identifier
     )
 );
 
--- =========================================================
--- 11. SEED REFERENCE DATA
--- INSERT IGNORE avoids duplicate reference entries.
--- =========================================================
-
+-- SEED REFERENCE DATA
 INSERT IGNORE INTO chart_types (chart_name, chart_description)
 VALUES
     ('top200', 'Daily Top 200 chart'),
@@ -186,39 +138,37 @@ VALUES
     ('NEW_ENTRY'),
     ('UNKNOWN');
 
-INSERT IGNORE INTO data_sources
+INSERT INTO data_sources
     (source_name, source_type, source_url, source_notes)
-VALUES
-    (
-        'Spotify Charts Kaggle Dataset',
-        'CSV',
-        'https://www.kaggle.com/datasets/dhruvildave/spotify-charts',
-        'Daily Spotify chart observations'
-    ),
-    (
-        'Spotify Web API',
-        'API',
-        'https://developer.spotify.com/documentation/web-api',
-        'Track metadata; subject to API availability and terms'
-    );
+SELECT
+    'Spotify Charts Kaggle Dataset',
+    'CSV',
+    'https://www.kaggle.com/datasets/dhruvildave/spotify-charts',
+    'Daily Spotify chart observations'
+WHERE NOT EXISTS (
+    SELECT 1 FROM data_sources
+    WHERE source_name = 'Spotify Charts Kaggle Dataset'
+);
 
--- =========================================================
--- 12. VALIDATION
--- Shows tables and checks the existing core structures.
--- =========================================================
+INSERT INTO data_sources
+    (source_name, source_type, source_url, source_notes)
+SELECT
+    'Spotify Web API',
+    'API',
+    'https://developer.spotify.com/documentation/web-api',
+    'Track metadata; subject to API availability and terms'
+WHERE NOT EXISTS (
+    SELECT 1 FROM data_sources
+    WHERE source_name = 'Spotify Web API'
+);
 
+-- BASIC VALIDATION
 SHOW TABLES;
 
 DESCRIBE artists;
 DESCRIBE albums;
 DESCRIBE tracks;
 DESCRIBE daily_track_charts;
-
--- =========================================================
--- 13. DATABASE VALIDATION
--- =========================================================
-
-USE music_discovery;
 
 SELECT
     TABLE_NAME,
@@ -230,11 +180,3 @@ FROM information_schema.KEY_COLUMN_USAGE
 WHERE TABLE_SCHEMA = 'music_discovery'
   AND REFERENCED_TABLE_NAME IS NOT NULL
 ORDER BY TABLE_NAME, COLUMN_NAME;
-
-SELECT 'artists' AS table_name, COUNT(*) AS total_rows FROM artists
-UNION ALL
-SELECT 'albums', COUNT(*) FROM albums
-UNION ALL
-SELECT 'tracks', COUNT(*) FROM tracks
-UNION ALL
-SELECT 'daily_track_charts', COUNT(*) FROM daily_track_charts;
