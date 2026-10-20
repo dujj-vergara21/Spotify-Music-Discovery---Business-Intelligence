@@ -1,8 +1,9 @@
+
 -- =========================================================
 -- MUSIC DISCOVERY & ARTIST VISIBILITY DASHBOARD
--- Database: MySQL
 -- File: sql/01_database_setup.sql
--- Creates tables 1-10
+-- Database: MySQL 8.0.43
+-- Creates tables 1-10 and seeds reference data
 -- =========================================================
 
 CREATE DATABASE IF NOT EXISTS music_discovery;
@@ -87,8 +88,6 @@ CREATE TABLE IF NOT EXISTS daily_track_charts (
     INDEX idx_track_date (track_id, chart_date),
     INDEX idx_region_date (region_id, chart_date),
 
-    -- Prevent duplicate entries for the same track,
-    -- date, rank, region, and chart type.
     UNIQUE KEY uq_daily_chart_entry
         (track_id, chart_date, chart_rank, region_id, chart_type_id)
 );
@@ -133,12 +132,13 @@ CREATE TABLE IF NOT EXISTS track_source_mapping (
         (source_id, source_track_identifier)
 );
 
--- SEED REFERENCE DATA
+-- SEED CHART TYPES
 INSERT IGNORE INTO chart_types (chart_name, chart_description)
 VALUES
     ('top200', 'Daily Top 200 chart'),
     ('viral50', 'Daily Viral 50 chart');
 
+-- SEED CHART TRENDS
 INSERT IGNORE INTO chart_trends (trend_name)
 VALUES
     ('MOVE_UP'),
@@ -147,7 +147,7 @@ VALUES
     ('NEW_ENTRY'),
     ('UNKNOWN');
 
--- Register the Kaggle source only if absent.
+-- REGISTER KAGGLE DATA SOURCE
 INSERT INTO data_sources
     (source_name, source_type, source_url, source_notes)
 SELECT
@@ -161,7 +161,7 @@ WHERE NOT EXISTS (
     WHERE source_name = 'Spotify Charts Kaggle Dataset'
 );
 
--- Register MusicBrainz as the selected metadata source.
+-- REGISTER MUSICBRAINZ API
 INSERT INTO data_sources
     (source_name, source_type, source_url, source_notes)
 SELECT
@@ -183,7 +183,7 @@ DESCRIBE albums;
 DESCRIBE tracks;
 DESCRIBE daily_track_charts;
 
--- Show foreign-key relationships.
+-- SHOW FOREIGN-KEY RELATIONSHIPS
 SELECT
     TABLE_NAME,
     COLUMN_NAME,
