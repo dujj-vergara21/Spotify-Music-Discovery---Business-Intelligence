@@ -16,25 +16,25 @@ The project aims to help listeners discover music beyond mainstream hits while p
 - Develop analytical measures and interactive visualizations.
 - Generate evidence-based insights and recommendations for music discovery and artist visibility.
 
+
 ## Data Sources
 
-### 1. Spotify Charts Dataset
+### Source 1: Spotify Charts — Kaggle CSV
+- **Purpose:** Historical chart performance analysis.
+- **Fields:** Track title, artist, rank, date, region, chart type, trend, and stream counts.
+- **Access:** Full CSV shared through the project Google Drive; sample CSV files are in `data/`.
+- **Use:** Main source for chart rankings and historical stream observations.
 
-Historical Spotify chart records containing information such as track titles, artists, rankings, dates, regions, chart types, trends, Spotify URLs, and stream counts.
+### Source 2: MusicBrainz API
+- **Purpose:** Enrich chart records with music metadata.
+- **Fields:** MusicBrainz recording ID, recording title, artist name, release date, and available artist information.
+- **Access:** https://musicbrainz.org/doc/MusicBrainz_API
+- **Implementation:** `src/musicbrainz_api.py`
+- **Usage requirements:** Use a descriptive User-Agent and respect API rate limits.
+- **Matching:** Match chart records to metadata using reliable identifiers where available; otherwise treat name-based matches as tentative.
 
-- Source: [Spotify Charts Dataset on Kaggle](https://www.kaggle.com/datasets/dhruvildave/spotify-charts)
-- Format: CSV
-- Use: Historical chart analysis, regional comparisons, trend analysis, and track performance measurement.
-
-### 2. Spotify Web API
-
-Track metadata retrieved using Spotify track IDs, including track names, artist information, album names, release dates, and other available track attributes.
-
-- Source: [Spotify Web API Documentation](https://developer.spotify.com/documentation/web-api)
-- Access method: Python and HTTP requests
-- Use: Enriching chart records with additional track metadata.
-
-**Source requirement note:** Although the project uses a Kaggle-hosted dataset and the Spotify Web API, both are associated with Spotify data. Whether they satisfy the course requirement for two distinct data sources will be confirmed with the instructor.
+### Excluded from the approved pipeline
+- Spotify Web API is not currently part of the approved data pipeline. Its use must be reviewed against applicable developer policies before adoption.
 
 ## Technology Stack
 
