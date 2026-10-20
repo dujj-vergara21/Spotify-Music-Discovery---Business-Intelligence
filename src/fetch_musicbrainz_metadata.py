@@ -1,4 +1,4 @@
-"""Fetch MusicBrainz metadata and save it as a CSV."""
+"""Fetch MusicBrainz artist metadata and save search matches."""
 
 import csv
 import time
@@ -9,7 +9,6 @@ from src.musicbrainz_api import search_artist
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 OUTPUT_PATH = PROJECT_ROOT / "data" / "musicbrainz_artist_metadata.csv"
 
-# Start with a small set of artists found in the chart dataset.
 ARTIST_NAMES = [
     "Shakira",
     "Ricky Martin",
@@ -22,37 +21,43 @@ ARTIST_NAMES = [
 ]
 
 
-
 def main():
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     records = []
-    seen_ids = set()
 
-    for index, name in enumerate(ARTIST_NAMES):
+    for index, chart_artist in enumerate(ARTIST_NAMES):
         try:
-            results = search_artist(name)
+            results = search_artist(chart_artist)
 
             for artist in results:
-                artist_id = artist.get("musicbrainz_artist_id")
-                if artist_id and artist_id not in seen_ids:
-                    records.append(artist)
-                    seen_ids.add(artist_id)
+                records.append({
+                    "chart_artist_name": chart_artist,
+                    "musicbrainz_artist_id": artist.get(
+                        "musicbrainz_artist_id"
+                    ),
+                    "musicbrainz_artist_name": artist.get("artist_name"),
+                    "country": artist.get("country"),
+                    "type": artist.get("type"),
+                    "disambiguation": artist.get("disambiguation"),
+                    "match_status": "REVIEW_REQUIRED",
+                })
 
-            print(f"Processed: {name} ({len(results)} results)")
+            print(f"{chart_artist}: {len(results)} candidate matches")
 
         except Exception as exc:
-            print(f"Could not fetch {name}: {exc}")
+            print(f"Could not fetch {chart_artist}: {exc}")
 
-        # Respect MusicBrainz's rate limit between requests.
         if index < len(ARTIST_NAMES) - 1:
             time.sleep(1.1)
 
     fieldnames = [
+        "chart_artist_name",
         "musicbrainz_artist_id",
-        "artist_name",
+        "musicbrainz_artist_name",
         "country",
         "type",
         "disambiguation",
+        "match_status",
     ]
 
     with OUTPUT_PATH.open("w", newline="", encoding="utf-8") as file:
@@ -60,7 +65,8 @@ def main():
         writer.writeheader()
         writer.writerows(records)
 
-    print(f"Saved {len(records)} artist records to {OUTPUT_PATH}")
+    print(f"Saved {len(records)} candidate matches to {OUTPUT_PATH}")
+    print("Review candidate matches before using them in analysis.")
 
 
 if __name__ == "__main__":
