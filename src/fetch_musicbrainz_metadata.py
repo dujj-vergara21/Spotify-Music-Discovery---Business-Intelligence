@@ -11,10 +11,16 @@ OUTPUT_PATH = PROJECT_ROOT / "data" / "musicbrainz_artist_metadata.csv"
 
 # Start with a small set of artists found in the chart dataset.
 ARTIST_NAMES = [
-    "Ben&Ben",
-    "Taylor Swift",
+    "Shakira",
+    "Ricky Martin",
+    "CNCO",
+    "J Balvin",
+    "Daddy Yankee",
+    "Maluma",
+    "Ozuna",
     "The Weeknd",
 ]
+
 
 
 def main():
