@@ -2,6 +2,7 @@
 -- MUSIC DISCOVERY & ARTIST VISIBILITY DASHBOARD
 -- Database: MySQL
 -- File: sql/01_database_setup.sql
+-- Creates tables 1-10
 -- =========================================================
 
 CREATE DATABASE IF NOT EXISTS music_discovery;
@@ -86,7 +87,8 @@ CREATE TABLE IF NOT EXISTS daily_track_charts (
     INDEX idx_track_date (track_id, chart_date),
     INDEX idx_region_date (region_id, chart_date),
 
-    -- Prevent duplicate chart entries
+    -- Prevent duplicate entries for the same track,
+    -- date, rank, region, and chart type.
     UNIQUE KEY uq_daily_chart_entry
         (track_id, chart_date, chart_rank, region_id, chart_type_id)
 );
@@ -145,7 +147,7 @@ VALUES
     ('NEW_ENTRY'),
     ('UNKNOWN');
 
--- Register the Kaggle dataset only if it does not exist
+-- Register the Kaggle source only if absent.
 INSERT INTO data_sources
     (source_name, source_type, source_url, source_notes)
 SELECT
@@ -159,18 +161,18 @@ WHERE NOT EXISTS (
     WHERE source_name = 'Spotify Charts Kaggle Dataset'
 );
 
--- Register Spotify Web API only if it does not exist
+-- Register MusicBrainz as the selected metadata source.
 INSERT INTO data_sources
     (source_name, source_type, source_url, source_notes)
 SELECT
-    'Spotify Web API',
+    'MusicBrainz API',
     'API',
-    'https://developer.spotify.com/documentation/web-api',
-    'Track metadata; subject to API availability and terms'
+    'https://musicbrainz.org/doc/MusicBrainz_API',
+    'Artist and recording metadata; candidate matches require review'
 WHERE NOT EXISTS (
     SELECT 1
     FROM data_sources
-    WHERE source_name = 'Spotify Web API'
+    WHERE source_name = 'MusicBrainz API'
 );
 
 -- BASIC VALIDATION
@@ -181,7 +183,7 @@ DESCRIBE albums;
 DESCRIBE tracks;
 DESCRIBE daily_track_charts;
 
--- Show foreign-key relationships
+-- Show foreign-key relationships.
 SELECT
     TABLE_NAME,
     COLUMN_NAME,
