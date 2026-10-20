@@ -1,0 +1,35 @@
+
+name: Fetch MusicBrainz Metadata
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fetch-metadata:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependency
+        run: python -m pip install requests
+
+      - name: Fetch artist metadata
+        run: python -m src.fetch_musicbrainz_metadata
+
+      - name: Save metadata as downloadable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: musicbrainz-artist-metadata
+          path: data/musicbrainz_artist_metadata.csv
+          if-no-files-found: error
+          retention-days: 7
