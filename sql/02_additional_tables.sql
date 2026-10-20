@@ -1,119 +1,231 @@
--- =========================================================
--- MUSIC DISCOVERY & ARTIST VISIBILITY DASHBOARD
--- File: sql/02_additional_tables.sql
--- Creates tables 11-20 and adds date-dimension relationship
--- =========================================================
+-- ============================================================
+-- FILE: sql/02_additional_tables.sql
+-- PROJECT: Music Discovery Business Intelligence
+-- DATABASE: music_discovery
+-- MYSQL: 8.0.43 compatible
+-- PURPOSE: Create tables 11–20 and connect the date dimension
+-- ============================================================
 
 USE music_discovery;
 
--- 11. COUNTRIES
+-- ============================================================
+-- TABLE 11: countries
+-- Stores country and region reference information.
+-- ============================================================
+
 CREATE TABLE IF NOT EXISTS countries (
     country_id INT AUTO_INCREMENT PRIMARY KEY,
     country_code VARCHAR(10) NOT NULL UNIQUE,
-    country_name VARCHAR(100) NOT NULL
+    country_name VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 12. CALENDAR DATE DIMENSION
+-- ============================================================
+-- TABLE 12: dim_dates
+-- Date dimension for time-based analysis.
+-- ============================================================
+
 CREATE TABLE IF NOT EXISTS dim_dates (
     date_id INT PRIMARY KEY,
     full_date DATE NOT NULL UNIQUE,
     year_num SMALLINT NOT NULL,
     month_num TINYINT NOT NULL,
     month_name VARCHAR(20) NOT NULL,
-    quarter_num TINYINT NOT NULL
+    quarter_num TINYINT NOT NULL,
+    day_num TINYINT NULL,
+    day_name VARCHAR(20) NULL,
+    week_num TINYINT NULL,
+    is_weekend BOOLEAN NULL
 );
 
--- 13. GENRES
+-- ============================================================
+-- TABLE 13: genres
+-- Stores music genre reference information.
+-- ============================================================
+
 CREATE TABLE IF NOT EXISTS genres (
     genre_id INT AUTO_INCREMENT PRIMARY KEY,
-    genre_name VARCHAR(100) NOT NULL UNIQUE
+    genre_name VARCHAR(100) NOT NULL UNIQUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 14. ARTIST-GENRE MAPPING
+-- ============================================================
+-- TABLE 14: artist_genres
+-- Many-to-many bridge between artists and genres.
+-- Requires artists from sql/01_database_setup.sql.
+-- ============================================================
+
 CREATE TABLE IF NOT EXISTS artist_genres (
     artist_id INT NOT NULL,
     genre_id INT NOT NULL,
+    source_name VARCHAR(100) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (artist_id, genre_id),
     CONSTRAINT fk_artist_genres_artist
-        FOREIGN KEY (artist_id) REFERENCES artists(artist_id),
+        FOREIGN KEY (artist_id)
+        REFERENCES artists (artist_id),
     CONSTRAINT fk_artist_genres_genre
-        FOREIGN KEY (genre_id) REFERENCES genres(genre_id)
+        FOREIGN KEY (genre_id)
+        REFERENCES genres (genre_id)
 );
 
--- 15. TRACK-GENRE MAPPING
+-- ============================================================
+-- TABLE 15: track_genres
+-- Many-to-many bridge between tracks and genres.
+-- Requires tracks from sql/01_database_setup.sql.
+-- ============================================================
+
 CREATE TABLE IF NOT EXISTS track_genres (
-    track_id VARCHAR(50) NOT NULL,
+    track_id VARCHAR(255) NOT NULL,
     genre_id INT NOT NULL,
+    source_name VARCHAR(100) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (track_id, genre_id),
     CONSTRAINT fk_track_genres_track
-        FOREIGN KEY (track_id) REFERENCES tracks(track_id),
+        FOREIGN KEY (track_id)
+        REFERENCES tracks (track_id),
     CONSTRAINT fk_track_genres_genre
-        FOREIGN KEY (genre_id) REFERENCES genres(genre_id)
+        FOREIGN KEY (genre_id)
+        REFERENCES genres (genre_id)
 );
 
--- 16. TRACK POPULARITY SNAPSHOTS
+-- ============================================================
+-- TABLE 16: track_popularity
+-- Stores track popularity snapshots from available sources.
+-- ============================================================
+
 CREATE TABLE IF NOT EXISTS track_popularity (
     popularity_id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    track_id VARCHAR(50) NOT NULL,
+    track_id VARCHAR(255) NOT NULL,
+    source_id INT NULL,
     snapshot_date DATE NOT NULL,
-    popularity_score INT,
-    CONSTRAINT fk_popularity_track
-        FOREIGN KEY (track_id) REFERENCES tracks(track_id),
-    UNIQUE KEY uq_track_snapshot (track_id, snapshot_date)
+    popularity_score DECIMAL(6,2) NULL,
+    popularity_source VARCHAR(100) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_track_popularity_snapshot
+        (track_id, snapshot_date, popularity_source),
+    CONSTRAINT fk_track_popularity_track
+        FOREIGN KEY (track_id)
+        REFERENCES tracks (track_id),
+    CONSTRAINT fk_track_popularity_source
+        FOREIGN KEY (source_id)
+        REFERENCES data_sources (source_id)
 );
 
--- 17. DATA QUALITY CHECKS
+-- ============================================================
+-- TABLE 17: data_quality_checks
+-- Records validation checks performed during data processing.
+-- ============================================================
+
 CREATE TABLE IF NOT EXISTS data_quality_checks (
     check_id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    batch_id BIGINT,
+    batch_id BIGINT NULL,
+    table_name VARCHAR(100) NOT NULL,
     check_name VARCHAR(150) NOT NULL,
+    check_status VARCHAR(30) NOT NULL,
     records_checked BIGINT DEFAULT 0,
     records_failed BIGINT DEFAULT 0,
-    checked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_quality_batch
-        FOREIGN KEY (batch_id) REFERENCES import_batches(batch_id)
+    check_details TEXT NULL,
+    checked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_quality_checks_batch
+        FOREIGN KEY (batch_id)
+        REFERENCES import_batches (batch_id)
 );
 
--- 18. IMPORT ERRORS
+-- ============================================================
+-- TABLE 18: import_errors
+-- Stores data import and transformation errors.
+-- ============================================================
+
 CREATE TABLE IF NOT EXISTS import_errors (
     error_id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    batch_id BIGINT,
-    source_row_number BIGINT,
-    error_message TEXT,
-    logged_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_errors_batch
-        FOREIGN KEY (batch_id) REFERENCES import_batches(batch_id)
+    batch_id BIGINT NULL,
+    source_name VARCHAR(150) NULL,
+    source_row_number BIGINT NULL,
+    table_name VARCHAR(100) NULL,
+    error_type VARCHAR(100) NOT NULL,
+    error_message TEXT NOT NULL,
+    raw_record JSON NULL,
+    logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_import_errors_batch
+        FOREIGN KEY (batch_id)
+        REFERENCES import_batches (batch_id)
 );
 
--- 19. DASHBOARD REFRESH LOGS
+-- ============================================================
+-- TABLE 19: refresh_logs
+-- Tracks data refresh and pipeline execution history.
+-- ============================================================
+
 CREATE TABLE IF NOT EXISTS refresh_logs (
     refresh_id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    started_at DATETIME NOT NULL,
-    completed_at DATETIME,
-    refresh_status VARCHAR(50),
-    rows_processed BIGINT DEFAULT 0,
-    notes TEXT
+    batch_id BIGINT NULL,
+    process_name VARCHAR(150) NOT NULL,
+    start_time DATETIME NOT NULL,
+    end_time DATETIME NULL,
+    refresh_status VARCHAR(30) NOT NULL,
+    records_processed BIGINT DEFAULT 0,
+    error_message TEXT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_refresh_logs_batch
+        FOREIGN KEY (batch_id)
+        REFERENCES import_batches (batch_id)
 );
 
--- 20. ARTIST DISCOVERY METRICS
+-- ============================================================
+-- TABLE 20: artist_discovery_metrics
+-- Stores derived artist-level discovery metrics.
+-- Values should be populated by a repeatable pipeline.
+-- ============================================================
+
 CREATE TABLE IF NOT EXISTS artist_discovery_metrics (
     metric_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     artist_id INT NOT NULL,
     metric_date DATE NOT NULL,
-    chart_appearances BIGINT DEFAULT 0,
-    unique_tracks INT DEFAULT 0,
-    total_streams BIGINT DEFAULT 0,
-    CONSTRAINT fk_discovery_artist
-        FOREIGN KEY (artist_id) REFERENCES artists(artist_id),
-    UNIQUE KEY uq_artist_metric_date (artist_id, metric_date)
+    total_chart_entries INT DEFAULT 0,
+    distinct_tracks INT DEFAULT 0,
+    distinct_regions INT DEFAULT 0,
+    average_chart_rank DECIMAL(10,2) NULL,
+    best_chart_rank INT NULL,
+    total_streams BIGINT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_artist_discovery_metric
+        (artist_id, metric_date),
+    CONSTRAINT fk_discovery_metrics_artist
+        FOREIGN KEY (artist_id)
+        REFERENCES artists (artist_id)
 );
 
--- Add date dimension key to the fact table if missing.
--- Existing rows are retained; date_id is populated in a later step.
-ALTER TABLE daily_track_charts
-    ADD COLUMN IF NOT EXISTS date_id INT NULL;
+-- ============================================================
+-- ADD date_id TO daily_track_charts
+-- MySQL-compatible existence check; avoids relying on
+-- ALTER TABLE ... ADD COLUMN IF NOT EXISTS.
+-- ============================================================
 
--- Add the foreign key only if it does not already exist.
+SET @date_col_exists = (
+    SELECT COUNT(*)
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'daily_track_charts'
+      AND COLUMN_NAME = 'date_id'
+);
+
+SET @date_col_sql = IF(
+    @date_col_exists = 0,
+    'ALTER TABLE daily_track_charts ADD COLUMN date_id INT NULL',
+    'SELECT ''date_id column already exists'' AS status'
+);
+
+PREPARE date_col_stmt FROM @date_col_sql;
+EXECUTE date_col_stmt;
+DEALLOCATE PREPARE date_col_stmt;
+
+-- ============================================================
+-- ADD DATE-DIMENSION FOREIGN KEY ONLY IF IT DOES NOT EXIST
+-- ============================================================
+
 SET @date_fk_exists = (
     SELECT COUNT(*)
     FROM information_schema.KEY_COLUMN_USAGE
@@ -126,7 +238,8 @@ SET @date_fk_sql = IF(
     @date_fk_exists = 0,
     'ALTER TABLE daily_track_charts
        ADD CONSTRAINT fk_daily_charts_dates
-       FOREIGN KEY (date_id) REFERENCES dim_dates(date_id)',
+       FOREIGN KEY (date_id)
+       REFERENCES dim_dates (date_id)',
     'SELECT ''Date foreign key already exists'' AS status'
 );
 
@@ -134,8 +247,24 @@ PREPARE date_fk_stmt FROM @date_fk_sql;
 EXECUTE date_fk_stmt;
 DEALLOCATE PREPARE date_fk_stmt;
 
--- VERIFY TABLE COUNT
-SELECT COUNT(*) AS total_tables
-FROM information_schema.tables
-WHERE table_schema = 'music_discovery'
-  AND table_type = 'BASE TABLE';
+-- ============================================================
+-- VERIFICATION: COUNT TABLES IN THIS DATABASE
+-- ============================================================
+
+SELECT
+    COUNT(*) AS total_tables,
+    CASE
+        WHEN COUNT(*) >= 20 THEN '20-TABLE TARGET REACHED'
+        ELSE 'MORE TABLES REQUIRED'
+    END AS verification_status
+FROM information_schema.TABLES
+WHERE TABLE_SCHEMA = DATABASE()
+  AND TABLE_TYPE = 'BASE TABLE';
+
+-- List all tables for inspection.
+SELECT
+    TABLE_NAME
+FROM information_schema.TABLES
+WHERE TABLE_SCHEMA = DATABASE()
+  AND TABLE_TYPE = 'BASE TABLE'
+ORDER BY TABLE_NAME;
