@@ -2,6 +2,8 @@
 name: Fetch MusicBrainz Metadata
 
 on:
+  schedule:
+    - cron: "0 21 * * *"
   workflow_dispatch:
 
 permissions:
